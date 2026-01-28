@@ -1,4 +1,4 @@
-// --- Firebase Config (replace with your own Firebase project) ---
+// Firebase config (replace with your Firebase project info)
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -8,124 +8,95 @@ const firebaseConfig = {
   messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
+
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- DOM Elements ---
+// Elements
+const loginContainer = document.getElementById('login-container');
+const groupContainer = document.getElementById('group-container');
+const chatContainer = document.getElementById('chat-container');
+
+const usernameInput = document.getElementById('usernameInput');
+const enterBtn = document.getElementById('enterBtn');
+
+const displayUsername = document.getElementById('displayUsername');
+const groupInput = document.getElementById('groupInput');
+const createGroupBtn = document.getElementById('createGroupBtn');
+const joinGroupBtn = document.getElementById('joinGroupBtn');
+
 const chatBox = document.getElementById('chat-box');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
-const typingIndicator = document.getElementById('typing-indicator');
-const usersList = document.getElementById('users-list');
-const roomsList = document.getElementById('rooms-list');
-const newRoomInput = document.getElementById('new-room');
-const createRoomBtn = document.getElementById('create-room');
-const emojiBtn = document.getElementById('emojiBtn');
-const imageBtn = document.getElementById('imageBtn');
-const imageInput = document.getElementById('imageInput');
-const themeBtn = document.getElementById('themeBtn');
+const backBtn = document.getElementById('backBtn');
 
-let username = prompt("Enter your username") || "Anonymous";
-let currentRoom = "general";
+let username = '';
+let currentGroup = '';
 
-// --- User Presence ---
-const userRef = db.ref("online-users/" + username);
-userRef.set(true);
-userRef.onDisconnect().remove();
-
-// --- Rooms ---
-function createRoom(name){
-  db.ref("rooms/" + name).set(true);
-}
-createRoomBtn.addEventListener('click', () => {
-  const name = newRoomInput.value.trim();
-  if(name) createRoom(name);
-});
-db.ref("rooms").on('value', snapshot => {
-  roomsList.innerHTML = '';
-  snapshot.forEach(child => {
-    const li = document.createElement('li');
-    li.textContent = child.key;
-    li.onclick = () => {
-      currentRoom = child.key;
-      loadMessages();
-    };
-    roomsList.appendChild(li);
-  });
-});
-
-// --- Messages ---
-function loadMessages(){
-  chatBox.innerHTML = '';
-  db.ref("messages/" + currentRoom).off();
-  db.ref("messages/" + currentRoom).on('child_added', snapshot => {
-    const msg = snapshot.val();
-    const div = document.createElement('div');
-    div.className = "message " + (msg.user === username ? "own" : "other");
-    div.innerHTML = `<strong>${msg.user}</strong> [${new Date(msg.timestamp).toLocaleTimeString()}]: ${msg.text || ''}${msg.image ? '<br><img src="'+msg.image+'" width="100">' : ''}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-}
-loadMessages();
-
-// --- Send Messages ---
-sendBtn.addEventListener('click', () => {
-  const text = messageInput.value.trim();
-  if(!text) return;
-  db.ref("messages/" + currentRoom).push({
-    user: username,
-    text,
-    timestamp: Date.now()
-  });
-  messageInput.value = '';
-});
-
-// --- Typing Indicator ---
-messageInput.addEventListener('input', () => {
-  db.ref("typing/" + currentRoom + "/" + username).set(true);
-  setTimeout(() => {
-    db.ref("typing/" + currentRoom + "/" + username).remove();
-  }, 1000);
-});
-db.ref("typing/" + currentRoom).on('value', snapshot => {
-  const users = Object.keys(snapshot.val() || {}).filter(u => u !== username);
-  typingIndicator.textContent = users.length ? users.join(', ') + ' is typing...' : '';
-});
-
-// --- Online Users ---
-db.ref("online-users").on('value', snapshot => {
-  usersList.innerHTML = '';
-  snapshot.forEach(child => {
-    const li = document.createElement('li');
-    li.textContent = child.key;
-    usersList.appendChild(li);
-  });
-});
-
-// --- Image Upload ---
-imageBtn.addEventListener('click', () => imageInput.click());
-imageInput.addEventListener('change', () => {
-  const file = imageInput.files[0];
-  if(file){
-    const reader = new FileReader();
-    reader.onload = e => {
-      db.ref("messages/" + currentRoom).push({
-        user: username,
-        image: e.target.result,
-        timestamp: Date.now()
-      });
-    }
-    reader.readAsDataURL(file);
+// Step 1: Enter Username
+enterBtn.addEventListener('click', () => {
+  const name = usernameInput.value.trim();
+  if(name !== '') {
+    username = name;
+    displayUsername.textContent = username;
+    loginContainer.style.display = 'none';
+    groupContainer.style.display = 'block';
   }
 });
 
-// --- Emoji Picker ---
-emojiBtn.addEventListener('click', () => {
-  messageInput.value += '😀';
+// Step 2: Create Group
+createGroupBtn.addEventListener('click', () => {
+  const groupName = groupInput.value.trim();
+  if(groupName !== '') {
+    currentGroup = groupName;
+    startChat();
+  }
 });
 
-// --- Theme Switch ---
-themeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('dark');
+// Step 3: Join Group
+joinGroupBtn.addEventListener('click', () => {
+  const groupName = groupInput.value.trim();
+  if(groupName !== '') {
+    currentGroup = groupName;
+    startChat();
+  }
+});
+
+// Step 4: Start Chat
+function startChat() {
+  groupContainer.style.display = 'none';
+  chatContainer.style.display = 'block';
+  document.getElementById('currentGroup').textContent = currentGroup;
+
+  // Listen for messages
+  db.ref('groups/' + currentGroup + '/messages').on('child_added', snapshot => {
+    const msg = snapshot.val();
+    const msgDiv = document.createElement('div');
+    msgDiv.textContent = msg.username + ': ' + msg.text;
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
+
+// Send Message
+sendBtn.addEventListener('click', () => {
+  const text = messageInput.value.trim();
+  if(text !== '') {
+    const newMsg = db.ref('groups/' + currentGroup + '/messages').push();
+    newMsg.set({
+      username: username,
+      text: text,
+      timestamp: Date.now()
+    });
+    messageInput.value = '';
+  }
+});
+
+// Back to groups
+backBtn.addEventListener('click', () => {
+  chatContainer.style.display = 'none';
+  groupContainer.style.display = 'block';
+  chatBox.innerHTML = '';
+  db.ref('groups/' + currentGroup + '/messages').off();
 });
