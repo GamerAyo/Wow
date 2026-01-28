@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Group Messenger</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
+  <!-- Step 1: Enter Username -->
   <div class="container" id="login-container">
     <h1>Enter Username</h1>
     <input type="text" id="usernameInput" placeholder="Your username">
     <button id="enterBtn">Enter</button>
   </div>
 
+  <!-- Step 2: Create or Join Group -->
   <div class="container" id="group-container" style="display:none;">
     <h2>Welcome, <span id="displayUsername"></span></h2>
     <input type="text" id="groupInput" placeholder="Group name">
@@ -22,6 +22,7 @@
     <button id="joinGroupBtn">Join Group</button>
   </div>
 
+  <!-- Step 3: Chat Interface -->
   <div class="container" id="chat-container" style="display:none;">
     <h2>Group: <span id="currentGroup"></span></h2>
     <div id="chat-box"></div>
@@ -30,6 +31,7 @@
     <button id="backBtn">Back</button>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Firebase and App JS -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
