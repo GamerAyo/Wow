@@ -2,75 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Minecraft-like CSS World</title>
+  <title>Minecraft-ish 3D CSS World</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
+    }
+
+    body {
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #20252b;
+      background: radial-gradient(circle at top, #4b6cb7, #182848);
       font-family: system-ui, sans-serif;
       color: #eee;
+      overflow: hidden;
     }
 
-    .game-wrapper {
+    .ui {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
       text-align: center;
+      font-size: 14px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
     }
 
-    h1 {
-      margin-bottom: 10px;
+    .ui h1 {
       font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .ui p {
+      opacity: 0.85;
+    }
+
+    .scene-wrapper {
+      width: 600px;
+      height: 400px;
+      perspective: 900px;
+    }
+
+    .camera {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.08s linear;
     }
 
     .world {
-      display: grid;
-      grid-template-columns: repeat(5, 64px);
-      grid-template-rows: repeat(5, 64px);
-      gap: 2px;
-      background: #111;
-      padding: 4px;
-      border-radius: 6px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      position: relative;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      transform: rotateX(65deg) rotateY(0deg) translateZ(0);
     }
 
     .block {
-      width: 64px;
-      height: 64px;
-      border-radius: 2px;
-      cursor: pointer;
-      box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
-      transition: transform 0.05s, box-shadow 0.05s;
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      transform-style: preserve-3d;
     }
 
-    .block:active {
-      transform: translateY(1px);
-      box-shadow: inset 0 0 2px rgba(0,0,0,0.8);
+    /* Top face */
+    .block-top {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      transform: rotateX(90deg) translateZ(30px);
+      transform-origin: center;
     }
 
-    /* --- Block “textures” using gradients --- */
+    /* Side faces */
+    .block-side-x,
+    .block-side-z {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      transform-origin: bottom;
+    }
 
-    /* 0: Grass */
-    .type-grass {
+    .block-side-x {
+      transform: rotateY(90deg) translateZ(30px) translateY(0);
+    }
+
+    .block-side-z {
+      transform: translateZ(30px) translateY(0);
+    }
+
+    /* Textures */
+
+    .grass-top {
       background:
-        linear-gradient(#3aa63a, #2f7f2f 40%, #5b3b1f 40%, #3b2614 100%);
+        linear-gradient(#3aa63a, #2f7f2f 60%, #2a6b2a 100%);
     }
 
-    /* 1: Dirt */
-    .type-dirt {
+    .grass-side {
       background:
-        linear-gradient(#7a4b26, #5b3b1f);
+        linear-gradient(#5b3b1f 0, #3b2614 40%, #2a1a0d 100%);
     }
 
-    /* 2: Stone */
-    .type-stone {
+    .stone-top {
       background:
-        radial-gradient(circle at 20% 20%, #777 0, #555 25%, #444 60%, #333 100%);
+        radial-gradient(circle at 20% 20%, #888 0, #666 30%, #444 70%, #333 100%);
     }
 
-    /* 3: Planks */
-    .type-planks {
+    .stone-side {
+      background:
+        linear-gradient(#555, #333);
+    }
+
+    .planks-top {
       background:
         repeating-linear-gradient(
           90deg,
@@ -81,55 +127,145 @@
         );
     }
 
-    /* 4: Leaves */
-    .type-leaves {
+    .planks-side {
       background:
-        radial-gradient(circle at 20% 20%, #4caf50 0, #2e7d32 40%, #1b5e20 100%);
+        linear-gradient(#9a6e3c, #6b4a28);
     }
 
-    .hint {
-      margin-top: 8px;
-      font-size: 12px;
-      opacity: 0.8;
+    /* Simple shadow under world */
+    .shadow {
+      position: absolute;
+      width: 400px;
+      height: 200px;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.5), transparent 70%);
+      transform: translate(-50%, 120px);
+      left: 50%;
+      bottom: 0;
+      pointer-events: none;
+      filter: blur(2px);
     }
   </style>
 </head>
 <body>
-  <div class="game-wrapper">
-    <h1>Minecraft-like CSS Blocks</h1>
-    <div class="world" id="world"></div>
-    <div class="hint">Click blocks to cycle types (grass → dirt → stone → planks → leaves)</div>
+  <div class="ui">
+    <h1>Minecraft-ish 3D CSS World</h1>
+    <p>W/A/S/D = move • Arrow keys = rotate camera</p>
+  </div>
+
+  <div class="scene-wrapper">
+    <div class="camera" id="camera">
+      <div class="world" id="world"></div>
+    </div>
+    <div class="shadow"></div>
   </div>
 
   <script>
-    // Define block types in order
-    const blockTypes = [
-      "type-grass",
-      "type-dirt",
-      "type-stone",
-      "type-planks",
-      "type-leaves"
-    ];
-
     const world = document.getElementById("world");
+    const camera = document.getElementById("camera");
 
-    // Create 25 blocks (5x5)
-    for (let i = 0; i < 25; i++) {
-      const div = document.createElement("div");
-      div.classList.add("block", blockTypes[0]); // start as grass
-      div.dataset.typeIndex = "0";
+    const size = 5; // 5x5 = 25 blocks
+    const blockSize = 60;
+    const spacing = 4;
 
-      div.addEventListener("click", () => {
-        let idx = parseInt(div.dataset.typeIndex, 10);
-        idx = (idx + 1) % blockTypes.length;
-        div.dataset.typeIndex = String(idx);
+    // Simple pattern of block types
+    const types = ["grass", "stone", "planks"];
 
-        // Reset classes and apply new type
-        div.className = "block " + blockTypes[idx];
-      });
+    function createBlock(x, z, typeIndex) {
+      const block = document.createElement("div");
+      block.className = "block";
 
-      world.appendChild(div);
+      const offsetX = (x - (size - 1) / 2) * (blockSize + spacing);
+      const offsetZ = (z - (size - 1) / 2) * (blockSize + spacing);
+
+      block.style.transform =
+        `translateX(${offsetX}px) translateZ(${offsetZ}px) translateY(0px)`;
+
+      const type = types[typeIndex % types.length];
+
+      const top = document.createElement("div");
+      top.className = "block-top " +
+        (type === "grass" ? "grass-top" :
+         type === "stone" ? "stone-top" : "planks-top");
+
+      const sideX = document.createElement("div");
+      sideX.className =
+        "block-side-x " +
+        (type === "grass" ? "grass-side" :
+         type === "stone" ? "stone-side" : "planks-side");
+
+      const sideZ = document.createElement("div");
+      sideZ.className =
+        "block-side-z " +
+        (type === "grass" ? "grass-side" :
+         type === "stone" ? "stone-side" : "planks-side");
+
+      block.appendChild(top);
+      block.appendChild(sideX);
+      block.appendChild(sideZ);
+
+      world.appendChild(block);
     }
+
+    // Build 5x5 floor
+    let typeIndex = 0;
+    for (let x = 0; x < size; x++) {
+      for (let z = 0; z < size; z++) {
+        createBlock(x, z, typeIndex);
+        typeIndex++;
+      }
+    }
+
+    // Camera controls
+    let camRotY = -35;
+    let camRotX = 15;
+    let camX = 0;
+    let camZ = 0;
+
+    function updateCamera() {
+      camera.style.transform =
+        `translateX(${camX}px) translateZ(${camZ}px) rotateX(${camRotX}deg) rotateY(${camRotY}deg)`;
+    }
+
+    updateCamera();
+
+    window.addEventListener("keydown", (e) => {
+      const stepMove = 15;
+      const stepRot = 4;
+
+      switch (e.key) {
+        case "ArrowLeft":
+          camRotY -= stepRot;
+          break;
+        case "ArrowRight":
+          camRotY += stepRot;
+          break;
+        case "ArrowUp":
+          camRotX = Math.max(-10, camRotX - stepRot);
+          break;
+        case "ArrowDown":
+          camRotX = Math.min(60, camRotX + stepRot);
+          break;
+        case "w":
+        case "W":
+          camZ += stepMove;
+          break;
+        case "s":
+        case "S":
+          camZ -= stepMove;
+          break;
+        case "a":
+        case "A":
+          camX += stepMove;
+          break;
+        case "d":
+        case "D":
+          camX -= stepMove;
+          break;
+        default:
+          return;
+      }
+      updateCamera();
+    });
   </script>
 </body>
 </html>
