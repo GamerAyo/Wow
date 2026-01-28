@@ -1,271 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Minecraft-ish 3D CSS World</title>
+  <meta charset="UTF-8">
+  <title>Mini Minecraft</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at top, #4b6cb7, #182848);
-      font-family: system-ui, sans-serif;
-      color: #eee;
-      overflow: hidden;
-    }
-
-    .ui {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      font-size: 14px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
-    }
-
-    .ui h1 {
-      font-size: 20px;
-      margin-bottom: 4px;
-    }
-
-    .ui p {
-      opacity: 0.85;
-    }
-
-    .scene-wrapper {
-      width: 600px;
-      height: 400px;
-      perspective: 900px;
-    }
-
-    .camera {
-      width: 100%;
-      height: 100%;
-      transform-style: preserve-3d;
-      transition: transform 0.08s linear;
-    }
-
-    .world {
-      position: relative;
-      width: 0;
-      height: 0;
-      transform-style: preserve-3d;
-      transform: rotateX(65deg) rotateY(0deg) translateZ(0);
-    }
-
-    .block {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      transform-style: preserve-3d;
-    }
-
-    /* Top face */
-    .block-top {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      transform: rotateX(90deg) translateZ(30px);
-      transform-origin: center;
-    }
-
-    /* Side faces */
-    .block-side-x,
-    .block-side-z {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      transform-origin: bottom;
-    }
-
-    .block-side-x {
-      transform: rotateY(90deg) translateZ(30px) translateY(0);
-    }
-
-    .block-side-z {
-      transform: translateZ(30px) translateY(0);
-    }
-
-    /* Textures */
-
-    .grass-top {
-      background:
-        linear-gradient(#3aa63a, #2f7f2f 60%, #2a6b2a 100%);
-    }
-
-    .grass-side {
-      background:
-        linear-gradient(#5b3b1f 0, #3b2614 40%, #2a1a0d 100%);
-    }
-
-    .stone-top {
-      background:
-        radial-gradient(circle at 20% 20%, #888 0, #666 30%, #444 70%, #333 100%);
-    }
-
-    .stone-side {
-      background:
-        linear-gradient(#555, #333);
-    }
-
-    .planks-top {
-      background:
-        repeating-linear-gradient(
-          90deg,
-          #b3834a 0,
-          #b3834a 10px,
-          #9a6e3c 10px,
-          #9a6e3c 12px
-        );
-    }
-
-    .planks-side {
-      background:
-        linear-gradient(#9a6e3c, #6b4a28);
-    }
-
-    /* Simple shadow under world */
-    .shadow {
-      position: absolute;
-      width: 400px;
-      height: 200px;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0.5), transparent 70%);
-      transform: translate(-50%, 120px);
-      left: 50%;
-      bottom: 0;
-      pointer-events: none;
-      filter: blur(2px);
-    }
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
   </style>
 </head>
 <body>
-  <div class="ui">
-    <h1>Minecraft-ish 3D CSS World</h1>
-    <p>W/A/S/D = move • Arrow keys = rotate camera</p>
-  </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-  <div class="scene-wrapper">
-    <div class="camera" id="camera">
-      <div class="world" id="world"></div>
-    </div>
-    <div class="shadow"></div>
-  </div>
+<script>
+  // Scene
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-  <script>
-    const world = document.getElementById("world");
-    const camera = document.getElementById("camera");
+  // Basic block texture
+  const texture = new THREE.MeshBasicMaterial({ color: 0x55ff55 });
 
-    const size = 5; // 5x5 = 25 blocks
-    const blockSize = 60;
-    const spacing = 4;
-
-    // Simple pattern of block types
-    const types = ["grass", "stone", "planks"];
-
-    function createBlock(x, z, typeIndex) {
-      const block = document.createElement("div");
-      block.className = "block";
-
-      const offsetX = (x - (size - 1) / 2) * (blockSize + spacing);
-      const offsetZ = (z - (size - 1) / 2) * (blockSize + spacing);
-
-      block.style.transform =
-        `translateX(${offsetX}px) translateZ(${offsetZ}px) translateY(0px)`;
-
-      const type = types[typeIndex % types.length];
-
-      const top = document.createElement("div");
-      top.className = "block-top " +
-        (type === "grass" ? "grass-top" :
-         type === "stone" ? "stone-top" : "planks-top");
-
-      const sideX = document.createElement("div");
-      sideX.className =
-        "block-side-x " +
-        (type === "grass" ? "grass-side" :
-         type === "stone" ? "stone-side" : "planks-side");
-
-      const sideZ = document.createElement("div");
-      sideZ.className =
-        "block-side-z " +
-        (type === "grass" ? "grass-side" :
-         type === "stone" ? "stone-side" : "planks-side");
-
-      block.appendChild(top);
-      block.appendChild(sideX);
-      block.appendChild(sideZ);
-
-      world.appendChild(block);
+  // Create a 10x10 ground
+  for (let x = 0; x < 10; x++) {
+    for (let z = 0; z < 10; z++) {
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      const cube = new THREE.Mesh(geo, texture);
+      cube.position.set(x, 0, z);
+      scene.add(cube);
     }
+  }
 
-    // Build 5x5 floor
-    let typeIndex = 0;
-    for (let x = 0; x < size; x++) {
-      for (let z = 0; z < size; z++) {
-        createBlock(x, z, typeIndex);
-        typeIndex++;
-      }
-    }
+  // Player
+  camera.position.set(5, 3, 15);
 
-    // Camera controls
-    let camRotY = -35;
-    let camRotX = 15;
-    let camX = 0;
-    let camZ = 0;
+  // Controls
+  let keys = {};
+  document.addEventListener("keydown", e => keys[e.key] = true);
+  document.addEventListener("keyup", e => keys[e.key] = false);
 
-    function updateCamera() {
-      camera.style.transform =
-        `translateX(${camX}px) translateZ(${camZ}px) rotateX(${camRotX}deg) rotateY(${camRotY}deg)`;
-    }
+  function animate() {
+    requestAnimationFrame(animate);
 
-    updateCamera();
+    if (keys["w"]) camera.position.z -= 0.1;
+    if (keys["s"]) camera.position.z += 0.1;
+    if (keys["a"]) camera.position.x -= 0.1;
+    if (keys["d"]) camera.position.x += 0.1;
 
-    window.addEventListener("keydown", (e) => {
-      const stepMove = 15;
-      const stepRot = 4;
+    renderer.render(scene, camera);
+  }
 
-      switch (e.key) {
-        case "ArrowLeft":
-          camRotY -= stepRot;
-          break;
-        case "ArrowRight":
-          camRotY += stepRot;
-          break;
-        case "ArrowUp":
-          camRotX = Math.max(-10, camRotX - stepRot);
-          break;
-        case "ArrowDown":
-          camRotX = Math.min(60, camRotX + stepRot);
-          break;
-        case "w":
-        case "W":
-          camZ += stepMove;
-          break;
-        case "s":
-        case "S":
-          camZ -= stepMove;
-          break;
-        case "a":
-        case "A":
-          camX += stepMove;
-          break;
-        case "d":
-        case "D":
-          camX -= stepMove;
-          break;
-        default:
-          return;
-      }
-      updateCamera();
-    });
-  </script>
+  animate();
+</script>
 </body>
 </html>
