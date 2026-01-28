@@ -1,19 +1,24 @@
-// Firebase config (replace with your Firebase project info)
+// Import Firebase functions
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, push, set, onChildAdded, off } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+// Firebase config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyB7drh_0Iqth7NBYJOP656TD4gQzCJ_4GQ",
+  authDomain: "nice-7909b.firebaseapp.com",
+  databaseURL: "https://nice-7909b-default-rtdb.firebaseio.com",
+  projectId: "nice-7909b",
+  storageBucket: "nice-7909b.appspot.com",
+  messagingSenderId: "285281313451",
+  appId: "1:285281313451:web:b347ee27d98c001cec4dee",
+  measurementId: "G-4PJ7W7GNTB"
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-// Elements
+// HTML Elements
 const loginContainer = document.getElementById('login-container');
 const groupContainer = document.getElementById('group-container');
 const chatContainer = document.getElementById('chat-container');
@@ -33,11 +38,12 @@ const backBtn = document.getElementById('backBtn');
 
 let username = '';
 let currentGroup = '';
+let groupRef = null;
 
 // Step 1: Enter Username
 enterBtn.addEventListener('click', () => {
   const name = usernameInput.value.trim();
-  if(name !== '') {
+  if(name){
     username = name;
     displayUsername.textContent = username;
     loginContainer.style.display = 'none';
@@ -48,7 +54,7 @@ enterBtn.addEventListener('click', () => {
 // Step 2: Create Group
 createGroupBtn.addEventListener('click', () => {
   const groupName = groupInput.value.trim();
-  if(groupName !== '') {
+  if(groupName){
     currentGroup = groupName;
     startChat();
   }
@@ -57,20 +63,23 @@ createGroupBtn.addEventListener('click', () => {
 // Step 3: Join Group
 joinGroupBtn.addEventListener('click', () => {
   const groupName = groupInput.value.trim();
-  if(groupName !== '') {
+  if(groupName){
     currentGroup = groupName;
     startChat();
   }
 });
 
-// Step 4: Start Chat
-function startChat() {
+// Start Chat
+function startChat(){
   groupContainer.style.display = 'none';
   chatContainer.style.display = 'block';
+  chatBox.innerHTML = '';
   document.getElementById('currentGroup').textContent = currentGroup;
 
-  // Listen for messages
-  db.ref('groups/' + currentGroup + '/messages').on('child_added', snapshot => {
+  groupRef = ref(db, 'groups/' + currentGroup + '/messages');
+
+  // Listen for new messages
+  onChildAdded(groupRef, snapshot => {
     const msg = snapshot.val();
     const msgDiv = document.createElement('div');
     msgDiv.textContent = msg.username + ': ' + msg.text;
@@ -79,12 +88,12 @@ function startChat() {
   });
 }
 
-// Send Message
+// Send message
 sendBtn.addEventListener('click', () => {
   const text = messageInput.value.trim();
-  if(text !== '') {
-    const newMsg = db.ref('groups/' + currentGroup + '/messages').push();
-    newMsg.set({
+  if(text && groupRef){
+    const newMsgRef = push(groupRef);
+    set(newMsgRef, {
       username: username,
       text: text,
       timestamp: Date.now()
@@ -93,10 +102,10 @@ sendBtn.addEventListener('click', () => {
   }
 });
 
-// Back to groups
+// Back to group selection
 backBtn.addEventListener('click', () => {
   chatContainer.style.display = 'none';
   groupContainer.style.display = 'block';
   chatBox.innerHTML = '';
-  db.ref('groups/' + currentGroup + '/messages').off();
+  if(groupRef) off(groupRef);
 });
