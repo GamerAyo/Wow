@@ -1,1 +1,135 @@
-<h1>LOL wsp</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Minecraft-like CSS World</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #20252b;
+      font-family: system-ui, sans-serif;
+      color: #eee;
+    }
+
+    .game-wrapper {
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+
+    .world {
+      display: grid;
+      grid-template-columns: repeat(5, 64px);
+      grid-template-rows: repeat(5, 64px);
+      gap: 2px;
+      background: #111;
+      padding: 4px;
+      border-radius: 6px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+
+    .block {
+      width: 64px;
+      height: 64px;
+      border-radius: 2px;
+      cursor: pointer;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+      transition: transform 0.05s, box-shadow 0.05s;
+    }
+
+    .block:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 0 2px rgba(0,0,0,0.8);
+    }
+
+    /* --- Block “textures” using gradients --- */
+
+    /* 0: Grass */
+    .type-grass {
+      background:
+        linear-gradient(#3aa63a, #2f7f2f 40%, #5b3b1f 40%, #3b2614 100%);
+    }
+
+    /* 1: Dirt */
+    .type-dirt {
+      background:
+        linear-gradient(#7a4b26, #5b3b1f);
+    }
+
+    /* 2: Stone */
+    .type-stone {
+      background:
+        radial-gradient(circle at 20% 20%, #777 0, #555 25%, #444 60%, #333 100%);
+    }
+
+    /* 3: Planks */
+    .type-planks {
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #b3834a 0,
+          #b3834a 10px,
+          #9a6e3c 10px,
+          #9a6e3c 12px
+        );
+    }
+
+    /* 4: Leaves */
+    .type-leaves {
+      background:
+        radial-gradient(circle at 20% 20%, #4caf50 0, #2e7d32 40%, #1b5e20 100%);
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <h1>Minecraft-like CSS Blocks</h1>
+    <div class="world" id="world"></div>
+    <div class="hint">Click blocks to cycle types (grass → dirt → stone → planks → leaves)</div>
+  </div>
+
+  <script>
+    // Define block types in order
+    const blockTypes = [
+      "type-grass",
+      "type-dirt",
+      "type-stone",
+      "type-planks",
+      "type-leaves"
+    ];
+
+    const world = document.getElementById("world");
+
+    // Create 25 blocks (5x5)
+    for (let i = 0; i < 25; i++) {
+      const div = document.createElement("div");
+      div.classList.add("block", blockTypes[0]); // start as grass
+      div.dataset.typeIndex = "0";
+
+      div.addEventListener("click", () => {
+        let idx = parseInt(div.dataset.typeIndex, 10);
+        idx = (idx + 1) % blockTypes.length;
+        div.dataset.typeIndex = String(idx);
+
+        // Reset classes and apply new type
+        div.className = "block " + blockTypes[idx];
+      });
+
+      world.appendChild(div);
+    }
+  </script>
+</body>
+</html>
